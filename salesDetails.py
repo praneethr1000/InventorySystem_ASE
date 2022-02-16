@@ -1,8 +1,6 @@
 from datetime import datetime
-import pyodbc
+import pyodbc 
 from prettytable import PrettyTable
-
-
 def getConnection():
     conn = pyodbc.connect('Driver={SQL Server};'
                           'Server=DESKTOP-VU4ECPI;'
@@ -10,17 +8,15 @@ def getConnection():
                           'Trusted_Connection=yes;')
     return conn
 
-
 def generateInvoice():
     customer_id = int(input('Please enter customer ID: '))
     connection = getConnection()
     cursor = connection.cursor()
 
-    try:
+    try: 
         cursor.execute(f"select * from customerDetails where customerID = {customer_id};")
         result = cursor.fetchall()[0]
-
-
+        
         if not result:
             print('Customer has not registered yet. Please register before generating an invice')
             return
@@ -28,7 +24,7 @@ def generateInvoice():
             cursor.execute('select max(id) from invoiceDetails')
             res = cursor.fetchall()[0]
             if res[0]:
-                max_id = int(res[0]) + 1
+                max_id = int(res[0])+1
             else:
                 max_id = 1
             print(result)
@@ -38,7 +34,7 @@ def generateInvoice():
             item_name = input('Enter the name of the item purchased: ')
             selling_price = int(input('Enter selling price of the item: '))
             delivery_charges = int(input('Enter delivery charges if applicable. Else enter 0: '))
-            total_price = selling_price + delivery_charges + ((tax_rate / 100) * selling_price)
+            total_price = selling_price+delivery_charges+((tax_rate/100)*selling_price)
             date = datetime.today().strftime('%m-%d-%Y')
             query = f"insert into invoiceDetails values ({max_id},'{name}',{zip},{tax_rate},'{item_name}',{selling_price},{delivery_charges},{total_price}, '{date}',0); "
 
@@ -63,14 +59,14 @@ def payInstallment():
         current_date = datetime.now()
         date = datetime.strptime(date, '%m-%d-%Y')
         days = (current_date - date).days
-
-        if days <= 10:
+    
+        if days<=10:
             balance = (0.9 * int(total_price)) - installment_amount
-        elif days > 30:
+        elif days>30:
             balance = (1.02 * int(total_price)) - installment_amount
         else:
             balance = total_price - installment_amount
-        if balance > 0:
+        if balance>0:
             query = f'update invoiceDetails set totalPrice = {balance} where id = {invoice_id};'
             cursor.execute(query)
             cursor.commit()
@@ -122,8 +118,7 @@ def showClosedInvoices():
         connection.close()
     except Exception as e:
         print(f'Failed fetching invoices with exception: {e}')
-
-
+            
 def displayMenu():
     print('Welcome to Sales and Invoices module.')
     print('1. Generate an invoice')
@@ -131,9 +126,9 @@ def displayMenu():
     print('3. Show open invoices')
     print('4. Show closed invoices')
     print('5. Quit')
-
+    
     option = int(input('Select an option from the above menu: '))
-
+    
     if option == 1:
         generateInvoice()
     elif option == 2:
@@ -146,10 +141,10 @@ def displayMenu():
         return "exit"
     return "exit"
 
+
 def salesDetails():
     print("Sales and Invoices")
     displayMenu()
-
 
 salesDetails()
 
