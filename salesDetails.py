@@ -1,33 +1,43 @@
-from LoginFlow.userLogin import *
 from datetime import datetime
+import pyodbc 
+from prettytable import PrettyTable
+def getConnection():
+    conn = pyodbc.connect('Driver={SQL Server};'
+                          'Server=DESKTOP-VU4ECPI;'
+                          'Database=praneeth;'
+                          'Trusted_Connection=yes;')
+    return conn
 
 def generateInvoice():
-    customer_id = int(input('Please enter customer ID'))
+    customer_id = int(input('Please enter customer ID: '))
     connection = getConnection()
     cursor = connection.cursor()
 
     try: 
-        cursor.execute(f"select * from customerDetails where custmerID = {customer_id};")
-        result = list(cursor.fetchall)[0]
+        cursor.execute(f"select * from customerDetails where customerID = {customer_id};")
+        result = cursor.fetchall()[0]
+        
         if not result:
             print('Customer has not registered yet. Please register before generating an invice')
             return
         else:
             cursor.execute('select max(id) from invoiceDetails')
-            if cursor.fetchone():
-                max_id = int(cursor.fetchone()[0])+1
+            res = cursor.fetchall()[0]
+            if res[0]:
+                max_id = int(res[0])+1
             else:
                 max_id = 1
+            print(result)
             name = result[1]
-            zip = result[2]
-            tax_rate = result[3]
-            email = result[4]
+            zip = int(result[2])
+            tax_rate = int(result[3])
             item_name = input('Enter the name of the item purchased: ')
             selling_price = int(input('Enter selling price of the item: '))
-            delivery_charges = input('Enter delivery charges if applicable. Else enter 0: ')
+            delivery_charges = int(input('Enter delivery charges if applicable. Else enter 0: '))
             total_price = selling_price+delivery_charges+((tax_rate/100)*selling_price)
             date = datetime.today().strftime('%m-%d-%Y')
-            query = f'insert into invoiceDetails values ({max_id},{name},{zip},{email},{tax_rate},{item_name},{selling_price},{delivery_charges},{total_price});'
+            query = f"insert into invoiceDetails values ({max_id},'{name}',{zip},{tax_rate},'{item_name}',{selling_price},{delivery_charges},{total_price}, '{date}',0); "
+
             cursor.execute(query)
             cursor.commit()
             print('Invoice has been generated successfully')
@@ -40,11 +50,22 @@ def payInstallment():
     try:
         connection = getConnection()
         cursor = connection.cursor()
-        query = f'select totalPrice from invoiceDetails where id = {invoice_id};'
+        query = f'select totalPrice,dateOfPurchase from invoiceDetails where id = {invoice_id};'
         cursor.execute(query)
-        total_price = cursor.fetchone()[0]
+        result = cursor.fetchall()
+        total_price = result[0][0]
+        date = result[0][1]
         installment_amount = int(input('Enter installment amount: '))
-        balance = total_price - installment_amount
+        current_date = datetime.now()
+        date = datetime.strptime(date, '%m-%d-%Y')
+        days = (current_date - date).days
+    
+        if days<=10:
+            balance = (0.9 * int(total_price)) - installment_amount
+        elif days>30:
+            balance = (1.02 * int(total_price)) - installment_amount
+        else:
+            balance = total_price - installment_amount
         if balance>0:
             query = f'update invoiceDetails set totalPrice = {balance} where id = {invoice_id};'
             cursor.execute(query)
@@ -60,7 +81,7 @@ def closeInvoice():
     try:
         connection = getConnection()
         cursor = connection.cursor()
-        query = f'delete from invoieDetails where id = {invoice_id};'
+        query = f'update invoiceDetails set isClosed = 1 where id = {invoice_id};'
         cursor.execute(query)
         cursor.commit()
         connection.close()
@@ -71,11 +92,13 @@ def showOpenInvoices():
     try:
         connection = getConnection()
         cursor = connection.cursor()
-        query = f'select * from invoiceDetails order by date;'
+        query = f'select * from invoiceDetails where isClosed=0 order by dateOfPurchase;'
         cursor.execute(query)
         results = cursor.fetchall()
-        for result in results:
-            print(result)
+        x = PrettyTable()
+        x.field_names = [i[0] for i in cursor.description]
+        for row in results:
+            x.add_row(list(row))
         connection.close()
     except Exception as e:
         print(f'Failed fetching invoices with exception: {e}')
@@ -84,42 +107,44 @@ def showClosedInvoices():
     try:
         connection = getConnection()
         cursor = connection.cursor()
-        query = f'select * from invoiceDetails order by totalPrice desc;'
+        query = f'select * from invoiceDetails where isClosed =1 order by totalPrice desc;'
         cursor.execute(query)
         results = cursor.fetchall()
-        for result in results:
-            print(result)
+        print(results)
+        x = PrettyTable()
+        x.field_names = [i[0] for i in cursor.description]
+        for row in results:
+            x.add_row(list(row))
         connection.close()
     except Exception as e:
         print(f'Failed fetching invoices with exception: {e}')
             
 def displayMenu():
-    print('Welcme to Sales and Invoices module.')
+    print('Welcome to Sales and Invoices module.')
     print('1. Generate an invoice')
     print('2. Pay an installment')
-    print('3. Close an invoice')
-    print('4. Show open invoices')
-    print('5. Show closed invoices')
-    print('6. Quit')
+    print('3. Show open invoices')
+    print('4. Show closed invoices')
+    print('5. Quit')
     
-    option = int(input('Select an option from the abve menu'))
+    option = int(input('Select an option from the above menu: '))
     
     if option == 1:
         generateInvoice()
     elif option == 2:
         payInstallment()
     elif option == 3:
-        closeInvoice()
-    elif option == 4:
         showOpenInvoices()
-    elif option == 5:
+    elif option == 4:
         showClosedInvoices()
     else:
         return "exit"
     return "exit"
 
+
 def salesDetails():
     print("Sales and Invoices")
+    displayMenu()
 
-
+salesDetails()
 

@@ -1,16 +1,19 @@
 from SalesDetailsFlow.salesDetails import *
-from SalesPersonDetailsFlow.workersDetails import *
-from UserDetailsFlow.userDetails import *
-from WareHouseFlow.wareHouse import *
+
 
 import pyodbc
 
 
-def getPassword(password):
+def getConnection():
     conn = pyodbc.connect('Driver={SQL Server};'
-                          'Server=DESKTOP-0BSMBQL\SQLEXPRESS;'
+                          'Server=DESKTOP-VU4ECPI;'
                           'Database=praneeth;'
                           'Trusted_Connection=yes;')
+    return conn
+
+def getPassword(password):
+    
+    conn = getConnection()
     cur = conn.cursor()
 
     try:
