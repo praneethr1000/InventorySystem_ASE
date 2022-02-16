@@ -118,8 +118,8 @@ def displayMenu():
         return "exit"
     return "exit"
 
-
 def salesDetails():
     print("Sales and Invoices")
-    displayMenu()
+
+
 
